@@ -71,7 +71,8 @@ module Docsplit
       if GM_FORMATS.include?(`file -b --mime #{ESCAPE[doc]}`.strip.split(/[:;]\s+/)[0])
         `gm convert #{escaped_doc} #{escaped_out}/#{escaped_basename}.pdf`
       else
-        options = "-jar #{ROOT}/vendor/jodconverter/jodconverter-core-3.0-beta-4.jar -r #{ROOT}/vendor/conf/document-formats.js"
+        port_num   = find_port.to_s
+        options = "-jar #{ROOT}/vendor/jodconverter/jodconverter-core-3.0-beta-4.jar -r #{ROOT}/vendor/conf/document-formats.js -p #{port_num}"
         run "#{options} #{escaped_doc} #{escaped_out}/#{escaped_basename}.pdf", [], {}
       end
     end
@@ -105,6 +106,32 @@ module Docsplit
     return return_output ? (result.empty? ? nil : result) : true
   end
 
+  # Finds an open port otherwise defaults to 2002
+  # This is to allow for multiple instances of docsplit running with a headless 
+  # OOo server listening, or it will instantiate an OOo server with the specified port
+  # This prevents crashing OpenOffice when multiple Docsplit functions are running.
+  def self.find_port()
+    host = '127.0.0.1'
+    while true
+      begin
+        port_num = 25000 + Random.rand(40000)
+        puts "Checking port #{port_num}!"
+        new_sock = Socket.new(:INET, :STREAM)
+        raw = Socket.sockaddr_in(port_num, host)
+        if new_sock.connect(raw) == 0
+          puts "Already listening on this port, try again!"
+        end
+      rescue (Errno::ECONNREFUSED)
+        puts "Use port: #{port_num}"
+        break
+      rescue (Errno::ETIMEDOUT)
+        port_num = 2002
+        break
+      end
+    end
+    return port_num
+  end
+
   # Normalize a value in an options hash for the command line.
   # Ranges look like: 1-10, Arrays like: 1,2,3.
   def self.normalize_value(value)
@@ -120,6 +147,7 @@ end
 require 'tmpdir'
 require 'fileutils'
 require 'shellwords'
+require 'socket'
 require "#{Docsplit::ROOT}/lib/docsplit/image_extractor"
 require "#{Docsplit::ROOT}/lib/docsplit/transparent_pdfs"
 require "#{Docsplit::ROOT}/lib/docsplit/text_extractor"
