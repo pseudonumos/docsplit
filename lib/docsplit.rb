@@ -115,14 +115,9 @@ module Docsplit
     while true
       begin
         port_num = 25000 + Random.rand(40000)
-        puts "Checking port #{port_num}!"
         new_sock = Socket.new(:INET, :STREAM)
         raw = Socket.sockaddr_in(port_num, host)
-        if new_sock.connect(raw) == 0
-          puts "Already listening on this port, try again!"
-        end
       rescue (Errno::ECONNREFUSED)
-        puts "Use port: #{port_num}"
         break
       rescue (Errno::ETIMEDOUT)
         port_num = 2002
