@@ -112,15 +112,19 @@ module Docsplit
   # This prevents crashing OpenOffice when multiple Docsplit functions are running.
   def self.find_port()
     host = '127.0.0.1'
-    while true
+    for i in 0..20
       begin
         port_num = 25000 + Random.rand(40000)
         new_sock = Socket.new(:INET, :STREAM)
         raw = Socket.sockaddr_in(port_num, host)
+        new_sock.connect(raw)
+        new_sock.close
       rescue (Errno::ECONNREFUSED)
+        new_sock.close
         break
       rescue (Errno::ETIMEDOUT)
         port_num = 2002
+        new_sock.close
         break
       end
     end
